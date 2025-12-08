@@ -1,0 +1,56 @@
+name: Deploy Vue to GitHub Pages
+
+on:
+  # Kích hoạt workflow khi có push lên nhánh `master`
+  push:
+    branches: [master]
+  # Cho phép chạy workflow thủ công
+  workflow_dispatch:
+
+# Đặt quyền cần thiết cho GITHUB_TOKEN để triển khai
+permissions:
+  contents: read # Giữ lại read cho checkout
+  pages: write # Cần thiết cho việc triển khai Pages
+  id-token: write # Cần thiết cho OIDC (bảo mật)
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # Thiết lập môi trường 'github-pages' cho job này
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }} # URL sẽ được tạo sau khi deploy
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js Environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build Vue App
+        run: npm run build
+
+      # --- Cấu hình và Triển khai Pages (Phương pháp mới) ---
+
+      - name: Setup Pages
+        # Cấu hình môi trường Pages (BẮT BUỘC)
+        uses: actions/configure-pages@v4
+
+      - name: Upload Artifact
+        # Đóng gói thư mục build (./dist) thành Artifact để deploy
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        # Triển khai Artifact vừa tạo lên GitHub Pages
+        uses: actions/deploy-pages@v4
